@@ -367,12 +367,25 @@
         function handleFiles(files) {
             if (files.length > 0) {
                 const file = files[0];
-                const validTypes = [
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'application/vnd.ms-excel',
-                    'text/csv'
+                const fileName = file.name.toLowerCase();
+                const fileType = file.type.toLowerCase();
+
+                // Check file extension
+                const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+                const isCsv = fileName.endsWith('.csv');
+
+                // Common MIME types for CSV files across different devices
+                const csvMimeTypes = [
+                    'text/csv',
+                    'application/csv',
+                    'text/x-csv',
+                    'application/x-csv',
+                    'text/comma-separated-values',
+                    'text/x-comma-separated-values',
+                    'text/plain'
                 ];
-                if (validTypes.includes(file.type) || file.name.endsWith('.csv')) {
+
+                if (isExcel || isCsv || csvMimeTypes.includes(fileType)) {
                     showFileInfo(file);
                     processBtn.disabled = false;
                     dropZone.classList.add('file-selected');
