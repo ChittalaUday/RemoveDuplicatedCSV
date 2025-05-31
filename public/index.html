@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Processor</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            border-color: #4299e1;
+            background-color: #ebf8ff;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">File Processor</h1>
+
+            <!-- File Upload Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div id="dropZone" class="drop-zone rounded-lg p-8 text-center cursor-pointer mb-4">
+                    <div class="text-gray-500">
+                        <svg class="mx-auto h-12 w-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p class="text-lg mb-2">Drag and drop your Excel or CSV file here</p>
+                        <p class="text-sm">or</p>
+                        <button id="browseBtn"
+                            class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            Browse Files
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls,.csv">
+
+                <!-- File Requirements -->
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
+                    <p class="font-semibold mb-2">File Requirements:</p>
+                    <ul class="list-disc list-inside">
+                        <li>Accepted formats: Excel (.xlsx, .xls) or CSV (.csv)</li>
+                        <li>Required column headers:</li>
+                        <ul class="ml-6 list-disc">
+                            <li>CAF</li>
+                            <li>Customer_Customer_Reseller_C Mobile</li>
+                            <li>Business_F LCO_Balan</li>
+                            <li>Serial_Num</li>
+                            <li>Mac_Vc_N</li>
+                            <li>Server_Type</li>
+                            <li>Product</li>
+                            <li>Service_Error</li>
+                            <li>address</li>
+                            <li>lco_name</li>
+                            <li>lco_code</li>
+                            <li>lco_city</li>
+                        </ul>
+                        <li class="mt-2">The file will be processed to:</li>
+                        <ul class="ml-6 list-disc">
+                            <li>Remove duplicates based on Customer and Serial Number</li>
+                            <li>Remove entries containing 'z1', 'z', 'kap', or 'ang'</li>
+                            <li>Sort by date in ascending order</li>
+                            <li>Categorize by apartment type (A, B, C)</li>
+                        </ul>
+                    </ul>
+                </div>
+
+                <!-- Selected File Info -->
+                <div id="fileInfo" class="hidden mt-4">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                        <span id="fileName" class="text-gray-700"></span>
+                        <button id="removeFile" class="text-red-500 hover:text-red-700">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Button -->
+            <div class="text-center mb-6">
+                <button id="processBtn"
+                    class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                    Process File
+                </button>
+            </div>
+
+            <!-- Processing Status -->
+            <div id="processingStatus" class="hidden text-center mb-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+                <p class="text-gray-600 mt-2">Processing your file...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="hidden bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Processing Results</h2>
+                <div id="stats" class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Stats will be populated here -->
+                </div>
+                <div class="text-center">
+                    <button id="downloadBtn"
+                        class="inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        Download Processed File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage"
+                class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+                <span id="errorText"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const removeFile = document.getElementById('removeFile');
+        const processBtn = document.getElementById('processBtn');
+        const processingStatus = document.getElementById('processingStatus');
+        const results = document.getElementById('results');
+        const stats = document.getElementById('stats');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        let processedFileData = null;
+
+        // Handle drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        browseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        removeFile.addEventListener('click', clearFile);
+        processBtn.addEventListener('click', processFile);
+        downloadBtn.addEventListener('click', downloadFile);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const validTypes = [
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel',
+                    'text/csv'
+                ];
+                if (validTypes.includes(file.type) || file.name.endsWith('.csv')) {
+                    showFileInfo(file);
+                    processBtn.disabled = false;
+                } else {
+                    showError('Please upload an Excel file (.xlsx, .xls) or CSV file (.csv)');
+                }
+            }
+        }
+
+        function showFileInfo(file) {
+            fileName.textContent = file.name;
+            fileInfo.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+            processBtn.disabled = true;
+            results.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            processedFileData = null;
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            clearFile();
+        }
+
+        async function processFile() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            processingStatus.classList.remove('hidden');
+            processBtn.disabled = true;
+            results.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error processing file');
+                }
+
+                processedFileData = data.fileData;
+
+                // Display stats
+                stats.innerHTML = Object.entries(data.stats)
+                    .map(([key, value]) => `
+                        <div class="bg-gray-50 p-4 rounded">
+                            <div class="font-medium text-gray-700">${key}</div>
+                            <div class="text-2xl font-bold text-gray-900">${value}</div>
+                        </div>
+                    `).join('');
+
+                results.classList.remove('hidden');
+            } catch (error) {
+                showError(error.message || 'An error occurred while processing the file. Please try again.');
+            } finally {
+                processingStatus.classList.add('hidden');
+                processBtn.disabled = false;
+            }
+        }
+
+        function downloadFile() {
+            if (!processedFileData) return;
+
+            const blob = base64ToBlob(processedFileData, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'processed_stock.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function base64ToBlob(base64, type) {
+            const binaryString = window.atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: type });
+        }
+    </script>
+</body>
+
+</html>
