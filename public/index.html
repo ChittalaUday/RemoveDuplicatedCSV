@@ -87,7 +87,7 @@
                             </button>
                         </div>
                     </div>
-                    <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls,.csv">
+                    <input type="file" id="fileInput" class="hidden" accept=".csv">
 
                     <!-- Selected File Info -->
                     <div id="fileInfo" class="hidden fade-in">
@@ -371,7 +371,6 @@
                 const fileType = file.type.toLowerCase();
 
                 // Check file extension
-                const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
                 const isCsv = fileName.endsWith('.csv');
 
                 // Common MIME types for CSV files across different devices
@@ -385,12 +384,12 @@
                     'text/plain'
                 ];
 
-                if (isExcel || isCsv || csvMimeTypes.includes(fileType)) {
+                if (isCsv || csvMimeTypes.includes(fileType)) {
                     showFileInfo(file);
                     processBtn.disabled = false;
                     dropZone.classList.add('file-selected');
                 } else {
-                    showError('Please upload an Excel file (.xlsx, .xls) or CSV file (.csv)');
+                    showError('Please upload a CSV file (.csv)');
                 }
             }
         }

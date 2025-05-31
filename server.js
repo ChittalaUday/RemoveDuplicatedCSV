@@ -10,9 +10,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(cors());
 app.use(express.static('public'));
 
-// Process Excel or CSV file
+// Process CSV file
 function processFile(buffer, filename) {
-    // Determine file type and read accordingly
+    // Read CSV file
     const workbook = XLSX.read(buffer, {
         type: 'buffer',
         raw: true,
@@ -105,7 +105,7 @@ function processFile(buffer, filename) {
         'Others': processedData.filter(row => !/[abc]/i.test(row.Address))
     };
 
-    // Create new workbook
+    // Create new workbook for output
     const newWorkbook = XLSX.utils.book_new();
 
     // Add sheets
@@ -136,9 +136,14 @@ app.post('/process', upload.single('file'), (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
+        // Verify file type
+        const fileExtension = path.extname(req.file.originalname).toLowerCase();
+        if (fileExtension !== '.csv') {
+            return res.status(400).json({ error: 'Please upload a CSV file' });
+        }
+
         const result = processFile(req.file.buffer, req.file.originalname);
 
-        // Set headers for file download
         res.setHeader('Content-Type', 'application/json');
         res.json({
             fileData: result.buffer.toString('base64'),
