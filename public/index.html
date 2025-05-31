@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excel/CSV Processor</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Add DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet">
     <style>
         .drop-zone {
             border: 2px dashed #cbd5e0;
@@ -57,6 +59,49 @@
                 opacity: .5;
             }
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        /* DataTables customization */
+        .dataTables_wrapper {
+            padding: 1rem;
+            background-color: white;
+            border-radius: 0.5rem;
+        }
     </style>
 </head>
 
@@ -87,7 +132,7 @@
                             </button>
                         </div>
                     </div>
-                    <input type="file" id="fileInput" class="hidden" accept=".csv">
+                    <input type="file" id="fileInput" class="hidden">
 
                     <!-- Selected File Info -->
                     <div id="fileInfo" class="hidden fade-in">
@@ -145,15 +190,59 @@
                 <div id="stats" class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Stats will be populated here -->
                 </div>
-                <div class="text-center">
+                <div class="flex justify-center space-x-4">
+                    <button id="previewInputBtn"
+                        class="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Preview Input
+                    </button>
+                    <button id="previewOutputBtn"
+                        class="inline-flex items-center px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Preview Output
+                    </button>
                     <button id="downloadBtn"
                         class="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                         <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        Download Processed File
+                        Download
                     </button>
+                </div>
+            </div>
+
+            <!-- Preview Modal -->
+            <div id="previewModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <div class="mb-4">
+                        <h2 id="modalTitle" class="text-2xl font-bold mb-4"></h2>
+                        <!-- Tabs for output preview -->
+                        <div id="outputTabs" class="hidden mb-4 border-b">
+                            <div class="flex space-x-4">
+                                <button class="tab-button px-4 py-2 tab-active" data-sheet="All Records">All
+                                    Records</button>
+                                <button class="tab-button px-4 py-2" data-sheet="A Apartment">A Apartment</button>
+                                <button class="tab-button px-4 py-2" data-sheet="B Apartment">B Apartment</button>
+                                <button class="tab-button px-4 py-2" data-sheet="C Apartment">C Apartment</button>
+                                <button class="tab-button px-4 py-2" data-sheet="Others">Others</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="previewContent" class="overflow-x-auto">
+                        <!-- Table will be inserted here -->
+                    </div>
                 </div>
             </div>
 
@@ -300,6 +389,10 @@
         </div>
     </footer>
 
+    <!-- Add jQuery and DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
     <script>
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -317,6 +410,13 @@
         const errorText = document.getElementById('errorText');
 
         let processedFileData = null;
+        let inputData = null;
+        let outputData = null;
+        const modal = document.getElementById('previewModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const previewContent = document.getElementById('previewContent');
+        const outputTabs = document.getElementById('outputTabs');
+        const closeBtn = document.querySelector('.close');
 
         // Handle drag and drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -339,6 +439,25 @@
         newFileBtn.addEventListener('click', clearFile);
         processBtn.addEventListener('click', processFile);
         downloadBtn.addEventListener('click', downloadFile);
+
+        // Preview buttons event listeners
+        document.getElementById('previewInputBtn').addEventListener('click', () => showPreview('input'));
+        document.getElementById('previewOutputBtn').addEventListener('click', () => showPreview('output'));
+
+        // Close modal when clicking the close button or outside the modal
+        closeBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('tab-active'));
+                button.classList.add('tab-active');
+                showOutputSheet(button.dataset.sheet);
+            });
+        });
 
         function preventDefaults(e) {
             e.preventDefault();
@@ -367,32 +486,9 @@
         function handleFiles(files) {
             if (files.length > 0) {
                 const file = files[0];
-                const fileName = file.name.toLowerCase();
-                const fileType = file.type.toLowerCase();
-
-                // Check file extension
-                const isCsv = fileName.endsWith('.csv');
-
-                // Common MIME types for CSV files across different devices
-                const csvMimeTypes = [
-                    'text/csv',
-                    'application/csv',
-                    'text/x-csv',
-                    'application/x-csv',
-                    'text/comma-separated-values',
-                    'text/x-comma-separated-values',
-                    'text/plain',
-                    'application/vnd.ms-excel',
-                    'application/msexcel'
-                ];
-
-                if (isCsv || csvMimeTypes.includes(fileType)) {
-                    showFileInfo(file);
-                    processBtn.disabled = false;
-                    dropZone.classList.add('file-selected');
-                } else {
-                    showError('Please upload a CSV file (.csv)');
-                }
+                showFileInfo(file);
+                processBtn.disabled = false;
+                dropZone.classList.add('file-selected');
             }
         }
 
@@ -410,6 +506,8 @@
             results.classList.add('hidden');
             errorMessage.classList.add('hidden');
             processedFileData = null;
+            inputData = null;
+            outputData = null;
         }
 
         function showError(message) {
@@ -443,6 +541,7 @@
                 }
 
                 processedFileData = data.fileData;
+                outputData = data.sheets; // Store the processed data for preview
 
                 // Display stats with animation
                 stats.innerHTML = Object.entries(data.stats)
@@ -483,6 +582,89 @@
                 bytes[i] = binaryString.charCodeAt(i);
             }
             return new Blob([bytes], { type: type });
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        async function showPreview(type) {
+            modalTitle.textContent = type === 'input' ? 'Input File Preview' : 'Processed File Preview';
+            modal.style.display = 'block';
+            outputTabs.style.display = type === 'output' ? 'block' : 'none';
+
+            if (type === 'input') {
+                if (!inputData) {
+                    const file = fileInput.files[0];
+                    if (!file) return;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const response = await fetch('/preview-input', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        inputData = await response.json();
+                    } catch (error) {
+                        console.error('Error loading preview:', error);
+                        return;
+                    }
+                }
+                displayTable(inputData);
+            } else {
+                if (!outputData) {
+                    outputData = processedFileData;
+                }
+                showOutputSheet('All Records');
+            }
+        }
+
+        function showOutputSheet(sheetName) {
+            if (!outputData || !outputData[sheetName]) return;
+            displayTable(outputData[sheetName]);
+        }
+
+        function displayTable(data) {
+            if (!data || !data.length) {
+                previewContent.innerHTML = '<p class="text-center py-4">No data available</p>';
+                return;
+            }
+
+            // Destroy existing DataTable if it exists
+            if ($.fn.DataTable.isDataTable('#previewTable')) {
+                $('#previewTable').DataTable().destroy();
+            }
+
+            // Create table HTML
+            const headers = Object.keys(data[0]);
+            const tableHTML = `
+                <table id="previewTable" class="w-full">
+                    <thead>
+                        <tr>
+                            ${headers.map(h => `<th class="px-4 py-2 bg-gray-100">${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(row => `
+                            <tr>
+                                ${headers.map(h => `<td class="px-4 py-2 border">${row[h] || ''}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            previewContent.innerHTML = tableHTML;
+
+            // Initialize DataTable
+            $('#previewTable').DataTable({
+                pageLength: 10,
+                responsive: true,
+                dom: 'Bfrtip',
+                ordering: true,
+                searching: true
+            });
         }
 
         // Language Toggle Functionality
